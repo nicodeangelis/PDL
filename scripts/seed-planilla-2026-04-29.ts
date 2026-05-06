@@ -100,7 +100,8 @@ function buildMatches(): MatchRow[] {
   // R3
   out.push(
     row(order++, c(0), Id.cristian, Id.diego, Id.santiago, Id.mati, 8, 6),
-    row(order++, c(1), Id.guille, Id.wally, Id.mariano, Id.ale, 7, 4),
+    // Marcador del equipo Mariano+Ale (suma juegos del equipo; alinea TOTAL Mariano con planilla ~7).
+    row(order++, c(1), Id.guille, Id.wally, Id.mariano, Id.ale, 7, 3),
   );
   // R4 (S+N 5 / C+P 10 ; D+A 3 vs M+Ma 0)
   out.push(

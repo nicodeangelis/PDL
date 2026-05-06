@@ -15,8 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import type { Player, Tournament } from "@/lib/types";
-
-const LOCK_PASSWORD = "0102";
+import { TournamentLockModal } from "@/components/tournament-lock-modal";
 
 function defaultLevelForName(name: string): number {
   const normalized = name.trim().toLowerCase();
@@ -44,6 +43,7 @@ export default function TorneoSetupPage() {
 
   const [quickName, setQuickName] = useState("");
   const [quickLevel, setQuickLevel] = useState(3);
+  const [pwdModal, setPwdModal] = useState<null | { mode: "lock" | "unlock" | "delete" }>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -161,46 +161,49 @@ export default function TorneoSetupPage() {
     setParticipantIds((prev) => [...prev, j.id]);
   }
 
-  async function deleteTournament() {
-    if (!id || !confirm("¿Eliminar torneo y todos sus partidos?")) return;
-    let suffix = "";
-    if (tournament?.locked) {
-      const pass = prompt("Password para eliminar torneo bloqueado");
-      if (pass !== LOCK_PASSWORD) {
-        setErr("Password inválido");
-        return;
-      }
-      suffix = `?lockPassword=${encodeURIComponent(pass)}`;
-    }
+  async function runDelete(lockPw: string): Promise<boolean> {
+    if (!id) return false;
+    const suffix = lockPw ? `?lockPassword=${encodeURIComponent(lockPw)}` : "";
     const r = await fetch(`/api/tournaments/${id}${suffix}`, { method: "DELETE" });
+    const j = await r.json().catch(() => ({}));
     if (!r.ok) {
-      setErr("No se pudo eliminar");
-      return;
+      setErr(String(j.error ?? "No se pudo eliminar"));
+      return false;
     }
     router.push("/torneos");
+    return true;
   }
 
-  async function toggleLock(nextLocked: boolean) {
-    if (!id) return;
-    const pass = prompt("Password");
-    if (pass !== LOCK_PASSWORD) {
-      setErr("Password inválido");
+  async function deleteTournament() {
+    if (!id || !confirm("¿Eliminar torneo y todos sus partidos?")) return;
+    if (tournament?.locked) {
+      setPwdModal({ mode: "delete" });
       return;
     }
-    setSaving(true);
+    await runDelete("");
+  }
+
+  async function submitPwdModal(password: string): Promise<boolean> {
+    if (!id || !pwdModal) return false;
     setErr(null);
+    if (pwdModal.mode === "delete") {
+      return runDelete(password);
+    }
+    setSaving(true);
     try {
+      const nextLocked = pwdModal.mode === "lock";
       const r = await fetch(`/api/tournaments/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locked: nextLocked, lockPassword: pass }),
+        body: JSON.stringify({ locked: nextLocked, lockPassword: password }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
         setErr(String(j.error ?? "No se pudo actualizar bloqueo"));
-        return;
+        return false;
       }
       setTournament(j);
+      return true;
     } finally {
       setSaving(false);
     }
@@ -316,14 +319,14 @@ export default function TorneoSetupPage() {
               <button
                 type="button"
                 disabled={saving}
-                onClick={() => void toggleLock(!tournament.locked)}
+                onClick={() => setPwdModal({ mode: tournament.locked ? "unlock" : "lock" })}
                 className={`w-full rounded-lg py-2 text-sm font-medium ${
                   tournament.locked
                     ? "border border-emerald-200 text-emerald-700"
                     : "border border-amber-200 text-amber-700"
                 }`}
               >
-                {tournament.locked ? "Desbloquear (0102)" : "Bloquear (0102)"}
+                {tournament.locked ? "Desbloquear torneo" : "Bloquear torneo"}
               </button>
             </section>
 
@@ -470,6 +473,27 @@ export default function TorneoSetupPage() {
           </button>
         </div>
       )}
+
+      <TournamentLockModal
+        open={pwdModal !== null}
+        title={
+          pwdModal?.mode === "lock"
+            ? "Bloquear torneo"
+            : pwdModal?.mode === "unlock"
+              ? "Desbloquear torneo"
+              : "Eliminar torneo bloqueado"
+        }
+        description={
+          pwdModal?.mode === "delete"
+            ? "Ingresá la contraseña para eliminar este torneo."
+            : "Ingresá la contraseña para confirmar."
+        }
+        confirmLabel={
+          pwdModal?.mode === "lock" ? "Bloquear" : pwdModal?.mode === "unlock" ? "Desbloquear" : "Eliminar"
+        }
+        onClose={() => setPwdModal(null)}
+        onSubmit={submitPwdModal}
+      />
     </div>
   );
 }

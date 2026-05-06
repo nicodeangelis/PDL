@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import { deleteTournament, getTournament, saveTournament } from "@/lib/kv/tournaments";
 import type { Tournament } from "@/lib/types";
 import { syncPlayerAggregates } from "@/lib/career/sync";
-
-const LOCK_PASSWORD = "0102";
+import { verifyTournamentLockPassword } from "@/lib/server/tournamentLock";
 
 function hasLockPermission(body: unknown): boolean {
   if (!body || typeof body !== "object") return false;
-  return (body as { lockPassword?: string }).lockPassword === LOCK_PASSWORD;
+  return verifyTournamentLockPassword((body as { lockPassword?: string }).lockPassword);
 }
 
 export async function GET(
@@ -85,7 +84,7 @@ export async function DELETE(
     if (!existing) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
     const url = new URL(req.url);
     const lockPassword = url.searchParams.get("lockPassword");
-    if (existing.locked && lockPassword !== LOCK_PASSWORD) {
+    if (existing.locked && !verifyTournamentLockPassword(lockPassword)) {
       return NextResponse.json({ error: "Torneo bloqueado" }, { status: 423 });
     }
     await deleteTournament(id);

@@ -116,10 +116,12 @@ export default function TorneoPadel() {
     });
 
     return Object.values(stats).sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points;
+      if (b.gamesFor !== a.gamesFor) return b.gamesFor - a.gamesFor;
       const diffA = a.gamesFor - a.gamesAgainst;
       const diffB = b.gamesFor - b.gamesAgainst;
-      return diffB - diffA;
+      if (diffB !== diffA) return diffB - diffA;
+      if (b.points !== a.points) return b.points - a.points;
+      return String(a.name).localeCompare(String(b.name), "es");
     });
   }, [matches, players]);
 
@@ -369,7 +371,9 @@ export default function TorneoPadel() {
           <h1 className="text-base font-medium">Tabla final</h1>
           <div className="w-5" />
         </div>
-        <p className="mt-1 text-xs text-stone-500">{completedMatches}/{matches.length} partidos jugados</p>
+        <p className="mt-1 text-xs text-stone-500">
+          {completedMatches}/{matches.length} partidos jugados · orden por juegos ganados
+        </p>
       </header>
 
       <main className="px-4 py-4 pb-8">
@@ -379,7 +383,7 @@ export default function TorneoPadel() {
             <div className="col-span-5">Jugador</div>
             <div className="col-span-2 text-center">PJ</div>
             <div className="col-span-2 text-center">Dif</div>
-            <div className="col-span-2 text-right">Pts</div>
+            <div className="col-span-2 text-right">JG</div>
           </div>
           {standings.map((p, i) => (
             <div
@@ -400,7 +404,7 @@ export default function TorneoPadel() {
                 {p.gamesFor - p.gamesAgainst > 0 ? "+" : ""}
                 {p.gamesFor - p.gamesAgainst}
               </div>
-              <div className="col-span-2 text-right font-medium">{p.points}</div>
+              <div className="col-span-2 text-right font-medium">{p.gamesFor}</div>
             </div>
           ))}
         </div>

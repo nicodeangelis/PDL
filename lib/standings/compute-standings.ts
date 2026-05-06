@@ -73,10 +73,13 @@ export function computeStandings(
     }
   }
 
+  /** Americano / planilla: primero juegos ganados (TOTAL), desempate diferencia (GF−GC). */
   return Array.from(stats.values()).sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
+    if (b.gamesFor !== a.gamesFor) return b.gamesFor - a.gamesFor;
     const diffA = a.gamesFor - a.gamesAgainst;
     const diffB = b.gamesFor - b.gamesAgainst;
-    return diffB - diffA;
+    if (diffB !== diffA) return diffB - diffA;
+    if (b.points !== a.points) return b.points - a.points;
+    return a.fullName.localeCompare(b.fullName, "es");
   });
 }

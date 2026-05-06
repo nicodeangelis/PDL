@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { getMatches, getTournament, saveMatches } from "@/lib/kv/tournaments";
 import type { MatchRow } from "@/lib/types";
 import { syncPlayerAggregates } from "@/lib/career/sync";
-
-const LOCK_PASSWORD = "0102";
+import { verifyTournamentLockPassword } from "@/lib/server/tournamentLock";
 
 function normalizeMatch(m: unknown, fallbackOrder: number): MatchRow | null {
   if (!m || typeof m !== "object") return null;
@@ -50,7 +49,7 @@ export async function PUT(
     const t = await getTournament(id);
     if (!t) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
     const body = await req.json();
-    if (t.locked && body.lockPassword !== LOCK_PASSWORD) {
+    if (t.locked && !verifyTournamentLockPassword(body.lockPassword)) {
       return NextResponse.json({ error: "Torneo bloqueado" }, { status: 423 });
     }
     const raw = body.matches;

@@ -73,7 +73,7 @@ export default function TablaPage() {
           <div className="w-5" />
         </div>
         <p className="mt-1 text-xs text-stone-500">
-          {completedMatches}/{matches.length} partidos jugados
+          {completedMatches}/{matches.length} partidos jugados · orden por juegos ganados (como planilla)
         </p>
       </header>
 
@@ -88,7 +88,7 @@ export default function TablaPage() {
                 <div className="col-span-5">Jugador</div>
                 <div className="col-span-2 text-center">PJ</div>
                 <div className="col-span-2 text-center">Dif</div>
-                <div className="col-span-2 text-right">Pts</div>
+                <div className="col-span-2 text-right">JG</div>
               </div>
               {standings.map((p, i) => (
                 <div
@@ -123,7 +123,7 @@ export default function TablaPage() {
                     {p.gamesFor - p.gamesAgainst > 0 ? "+" : ""}
                     {p.gamesFor - p.gamesAgainst}
                   </div>
-                  <div className="col-span-2 text-right font-medium">{p.points}</div>
+                  <div className="col-span-2 text-right font-medium">{p.gamesFor}</div>
                 </div>
               ))}
             </div>

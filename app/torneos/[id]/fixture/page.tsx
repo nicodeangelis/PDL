@@ -17,8 +17,7 @@ import {
 } from "lucide-react";
 import type { MatchRow, Player, Tournament } from "@/lib/types";
 import { randomUUID } from "@/lib/uuid";
-
-const LOCK_PASSWORD = "0102";
+import { TournamentLockModal } from "@/components/tournament-lock-modal";
 
 export default function FixturePage() {
   const { id: tid } = useParams();
@@ -33,6 +32,7 @@ export default function FixturePage() {
   const [genLoading, setGenLoading] = useState(false);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [draft, setDraft] = useState<MatchRow | null>(null);
+  const [lockModal, setLockModal] = useState<null | "lock" | "unlock">(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -211,24 +211,21 @@ export default function FixturePage() {
     closeEditModal();
   }
 
-  async function toggleLock(nextLocked: boolean) {
-    if (!id) return;
-    const pass = prompt("Password");
-    if (pass !== LOCK_PASSWORD) {
-      setErr("Password inválido");
-      return;
-    }
+  async function submitLockModal(password: string): Promise<boolean> {
+    if (!id || !lockModal) return false;
+    setErr(null);
     const r = await fetch(`/api/tournaments/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ locked: nextLocked, lockPassword: pass }),
+      body: JSON.stringify({ locked: lockModal === "lock", lockPassword: password }),
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
       setErr(String(j.error ?? "No se pudo actualizar bloqueo"));
-      return;
+      return false;
     }
     setTournament(j);
+    return true;
   }
 
   function autocompleteMatchesByTime() {
@@ -310,7 +307,10 @@ export default function FixturePage() {
             </button>
             <button
               type="button"
-              onClick={() => void toggleLock(!Boolean(tournament?.locked))}
+              onClick={() => {
+                if (!tournament) return;
+                setLockModal(tournament.locked ? "unlock" : "lock");
+              }}
               className="p-1 text-stone-500"
               aria-label={tournament?.locked ? "Desbloquear" : "Bloquear"}
             >
@@ -558,6 +558,15 @@ export default function FixturePage() {
           </div>
         </div>
       )}
+
+      <TournamentLockModal
+        open={lockModal !== null}
+        title={lockModal === "lock" ? "Bloquear torneo" : "Desbloquear torneo"}
+        description="Ingresá la contraseña para confirmar."
+        confirmLabel={lockModal === "lock" ? "Bloquear" : "Desbloquear"}
+        onClose={() => setLockModal(null)}
+        onSubmit={submitLockModal}
+      />
     </div>
   );
 }

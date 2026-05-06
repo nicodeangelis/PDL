@@ -4,8 +4,7 @@ import { getPlayer } from "@/lib/kv/players";
 import { getTournament, saveMatches } from "@/lib/kv/tournaments";
 import type { Player } from "@/lib/types";
 import { syncPlayerAggregates } from "@/lib/career/sync";
-
-const LOCK_PASSWORD = "0102";
+import { verifyTournamentLockPassword } from "@/lib/server/tournamentLock";
 
 export async function POST(
   req: Request,
@@ -16,7 +15,7 @@ export async function POST(
     const t = await getTournament(id);
     if (!t) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
     const body = await req.json().catch(() => ({}));
-    if (t.locked && body.lockPassword !== LOCK_PASSWORD) {
+    if (t.locked && !verifyTournamentLockPassword(body.lockPassword)) {
       return NextResponse.json({ error: "Torneo bloqueado" }, { status: 423 });
     }
 
