@@ -6,6 +6,7 @@ export type GenerateAmericanInput = {
   courts: number;
   matchTimeMin: number;
   mode?: FixtureMode;
+  targetMatches?: number;
 };
 
 export type GenerateAmericanResult =
@@ -157,8 +158,16 @@ function pairTeamsIntoMatches(pairs: Pair[]): CandidateMatch[] {
   return matches;
 }
 
-function rotatingMatches(players: Player[], mode: "rotating_balanced" | "rotating_random"): CandidateMatch[] {
-  const rounds = players.length / 2 - 1;
+function rotatingMatches(
+  players: Player[],
+  mode: "rotating_balanced" | "rotating_random",
+  targetMatches?: number,
+): CandidateMatch[] {
+  const matchesPerRound = players.length / 4;
+  const baseRounds = players.length / 2 - 1;
+  const extraRounds =
+    targetMatches && targetMatches > 0 ? Math.ceil(targetMatches / Math.max(1, matchesPerRound)) : 0;
+  const rounds = Math.max(baseRounds, extraRounds);
   const usedPairs = new Map<string, number>();
   const matches: CandidateMatch[] = [];
 
@@ -235,7 +244,7 @@ function scheduleIntoCourtSlots(candidates: CandidateMatch[], courts: number, ma
 }
 
 export function generateAmericanFixture(input: GenerateAmericanInput): GenerateAmericanResult {
-  const { players, courts, matchTimeMin, mode = "rotating_balanced" } = input;
+  const { players, courts, matchTimeMin, mode = "rotating_balanced", targetMatches } = input;
   if (players.length < 4) {
     return { ok: false, error: "Necesitás al menos 4 jugadores" };
   }
@@ -245,7 +254,12 @@ export function generateAmericanFixture(input: GenerateAmericanInput): GenerateA
   const candidates =
     mode === "fixed_balanced"
       ? fixedPairRoundRobin(makeBalancedFixedPairs(players))
-      : rotatingMatches([...players].sort(byLevelDesc), mode);
+      : rotatingMatches([...players].sort(byLevelDesc), mode, targetMatches);
 
-  return { ok: true, matches: scheduleIntoCourtSlots(candidates, courts, matchTimeMin) };
+  const scheduled = scheduleIntoCourtSlots(candidates, courts, matchTimeMin);
+  const limited =
+    targetMatches && targetMatches > 0
+      ? scheduled.slice(0, targetMatches).map((m, order) => ({ ...m, order }))
+      : scheduled;
+  return { ok: true, matches: limited };
 }

@@ -15,7 +15,7 @@ import {
   Lock,
   Unlock,
 } from "lucide-react";
-import type { MatchRow, Player, Tournament } from "@/lib/types";
+import type { FixtureMode, MatchRow, Player, Tournament } from "@/lib/types";
 import { randomUUID } from "@/lib/uuid";
 import { TournamentLockModal } from "@/components/tournament-lock-modal";
 import { generateAmericanFixture } from "@/lib/fixture/generate-american";
@@ -35,6 +35,7 @@ export default function FixturePage() {
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [draft, setDraft] = useState<MatchRow | null>(null);
   const [lockModal, setLockModal] = useState<null | "lock" | "unlock">(null);
+  const [modeSaving, setModeSaving] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -230,6 +231,31 @@ export default function FixturePage() {
     return true;
   }
 
+  async function updateFixtureMode(mode: FixtureMode) {
+    if (!id || !tournament) return;
+    if (tournament.locked) {
+      setErr("Torneo bloqueado.");
+      return;
+    }
+    setModeSaving(true);
+    setErr(null);
+    try {
+      const r = await fetch(`/api/tournaments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fixtureMode: mode }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setErr(String(j.error ?? "No se pudo actualizar modo"));
+        return;
+      }
+      setTournament(j);
+    } finally {
+      setModeSaving(false);
+    }
+  }
+
   function autocompleteMatchesByTime() {
     if (!tournament) return;
     if (tournament.locked) {
@@ -251,31 +277,34 @@ export default function FixturePage() {
       return;
     }
 
+    const mode = tournament.fixtureMode ?? "rotating_balanced";
+    const targetMatches = roundsThatFit * Math.max(1, tournament.courts);
     const generated = generateAmericanFixture({
       players: participantList,
       courts: tournament.courts,
       matchTimeMin: tournament.matchTimeMin,
-      mode: tournament.fixtureMode ?? "rotating_balanced",
+      mode,
+      targetMatches: mode === "fixed_balanced" ? undefined : targetMatches,
     });
     if (!generated.ok) {
       setErr(generated.error);
       return;
     }
 
-    const targetMatches = Math.min(generated.matches.length, roundsThatFit * Math.max(1, tournament.courts));
-    const missing = targetMatches - matches.length;
+    const target = mode === "fixed_balanced" ? Math.min(generated.matches.length, targetMatches) : targetMatches;
+    const missing = target - matches.length;
     if (missing <= 0) {
-      setErr(`Ya está completo para el tiempo configurado (${targetMatches} partidos).`);
+      setErr(`Ya está completo para el tiempo configurado (${target} partidos).`);
       return;
     }
 
     const nextMatches: MatchRow[] = [
       ...matches,
-      ...generated.matches.slice(matches.length, targetMatches),
+      ...generated.matches.slice(matches.length, target),
     ].map((m, order) => ({ ...m, order }));
     setMatches(nextMatches);
     setErr(
-      `Completado por tiempo: ${targetMatches} partidos en ${roundsThatFit} rondas (${tournament.totalTimeMin} min disponibles).`,
+      `Completado por tiempo: ${target} partidos en ${roundsThatFit} rondas (${tournament.totalTimeMin} min disponibles).`,
     );
   }
 
@@ -335,6 +364,16 @@ export default function FixturePage() {
         )}
 
         <div className="flex flex-wrap gap-2">
+          <select
+            value={tournament?.fixtureMode ?? "rotating_balanced"}
+            disabled={Boolean(tournament?.locked) || modeSaving}
+            onChange={(e) => void updateFixtureMode(e.target.value as FixtureMode)}
+            className="rounded-lg border border-stone-300 bg-white px-2 py-2 text-xs font-medium disabled:opacity-50"
+          >
+            <option value="rotating_balanced">Nivelado rotativo</option>
+            <option value="rotating_random">Aleatorio rotativo</option>
+            <option value="fixed_balanced">Equipos fijos nivelados</option>
+          </select>
           <button
             type="button"
             disabled={genLoading || Boolean(tournament?.locked)}

@@ -5,6 +5,7 @@ import { getTournament, saveMatches } from "@/lib/kv/tournaments";
 import type { Player } from "@/lib/types";
 import { syncPlayerAggregates } from "@/lib/career/sync";
 import { verifyTournamentLockPassword } from "@/lib/server/tournamentLock";
+import { computeRoundsThatFit } from "@/lib/tournament-schedule-summary";
 
 export async function POST(
   req: Request,
@@ -25,11 +26,17 @@ export async function POST(
       if (p) players.push(p);
     }
 
+    const roundsThatFit = computeRoundsThatFit(t.totalTimeMin, t.matchTimeMin, t.restTimeMin);
+    const mode = t.fixtureMode ?? "rotating_balanced";
+    const targetMatches =
+      mode === "fixed_balanced" || roundsThatFit <= 0 ? undefined : roundsThatFit * Math.max(1, t.courts);
+
     const gen = generateAmericanFixture({
       players,
       courts: t.courts,
       matchTimeMin: t.matchTimeMin,
-      mode: t.fixtureMode ?? "rotating_balanced",
+      mode,
+      targetMatches,
     });
 
     if (!gen.ok) {
