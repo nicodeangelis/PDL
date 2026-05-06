@@ -50,6 +50,23 @@ function applyScoreChanges(existing: MatchRow[], incoming: MatchRow[]): MatchRow
   return next;
 }
 
+function hasResultChanges(existing: MatchRow[], incoming: MatchRow[]): boolean {
+  const existingById = new Map(existing.map((match) => [match.id, match]));
+  const incomingIds = new Set(incoming.map((match) => match.id));
+  for (const match of incoming) {
+    const old = existingById.get(match.id);
+    if (!old) {
+      if (match.score1 !== "" || match.score2 !== "") return true;
+      continue;
+    }
+    if (old.score1 !== match.score1 || old.score2 !== match.score2) return true;
+  }
+  for (const match of existing) {
+    if (!incomingIds.has(match.id) && (match.score1 !== "" || match.score2 !== "")) return true;
+  }
+  return false;
+}
+
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> },
@@ -84,7 +101,14 @@ export async function PUT(
       const n = normalizeMatch(row, i);
       if (n) matches.push({ ...n, order: i });
     });
-    if (t.locked && !verifyTournamentLockPassword(body.lockPassword)) {
+    const canBypassLock = verifyTournamentLockPassword(body.lockPassword);
+    if (t.resultsLocked && !canBypassLock) {
+      const existing = await getMatches(id);
+      if (hasResultChanges(existing, matches)) {
+        return NextResponse.json({ error: "Resultados bloqueados" }, { status: 423 });
+      }
+    }
+    if (t.locked && !canBypassLock) {
       const existing = await getMatches(id);
       const scoresOnly = applyScoreChanges(existing, matches);
       if (!scoresOnly) {

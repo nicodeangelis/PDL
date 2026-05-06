@@ -17,6 +17,7 @@ export type Tournament = {
   participantIds: string[];
   createdAt: string;
   locked?: boolean;
+  resultsLocked?: boolean;
 };
 
 export type FixtureMode = "fixed_balanced" | "rotating_balanced" | "rotating_random";

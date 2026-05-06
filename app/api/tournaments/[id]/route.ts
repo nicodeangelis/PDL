@@ -41,10 +41,22 @@ export async function PATCH(
     const body = await req.json();
     const canBypassLock = hasLockPermission(body);
 
-    if (existing.locked && !canBypassLock && body.locked === undefined) {
+    const onlyResultsLockChange =
+      body.resultsLocked !== undefined &&
+      body.locked === undefined &&
+      body.name === undefined &&
+      body.dateISO === undefined &&
+      body.courts === undefined &&
+      body.matchTimeMin === undefined &&
+      body.restTimeMin === undefined &&
+      body.totalTimeMin === undefined &&
+      body.fixtureMode === undefined &&
+      body.participantIds === undefined;
+
+    if (existing.locked && !canBypassLock && body.locked === undefined && !onlyResultsLockChange) {
       return NextResponse.json({ error: "Torneo bloqueado" }, { status: 423 });
     }
-    if (body.locked !== undefined && !canBypassLock) {
+    if ((body.locked !== undefined || body.resultsLocked !== undefined) && !canBypassLock) {
       return NextResponse.json({ error: "Password inválido" }, { status: 401 });
     }
 
@@ -74,6 +86,8 @@ export async function PATCH(
         ? body.participantIds.map((x: unknown) => String(x))
         : existing.participantIds,
       locked: body.locked !== undefined ? Boolean(body.locked) : Boolean(existing.locked),
+      resultsLocked:
+        body.resultsLocked !== undefined ? Boolean(body.resultsLocked) : Boolean(existing.resultsLocked),
     };
 
     if (!next.dateISO) {

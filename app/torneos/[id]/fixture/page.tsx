@@ -21,6 +21,8 @@ import { TournamentLockModal } from "@/components/tournament-lock-modal";
 import { generateAmericanFixture } from "@/lib/fixture/generate-american";
 import { computeRoundsThatFit } from "@/lib/tournament-schedule-summary";
 
+type LockModalMode = "lock" | "unlock" | "resultsLock" | "resultsUnlock";
+
 export default function FixturePage() {
   const { id: tid } = useParams();
   const id = typeof tid === "string" ? tid : null;
@@ -34,7 +36,7 @@ export default function FixturePage() {
   const [genLoading, setGenLoading] = useState(false);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [draft, setDraft] = useState<MatchRow | null>(null);
-  const [lockModal, setLockModal] = useState<null | "lock" | "unlock">(null);
+  const [lockModal, setLockModal] = useState<LockModalMode | null>(null);
   const [modeSaving, setModeSaving] = useState(false);
   const saveSeqRef = useRef(0);
 
@@ -148,6 +150,10 @@ export default function FixturePage() {
   }
 
   function updateScore(mid: string, patch: Pick<Partial<MatchRow>, "score1" | "score2">) {
+    if (tournament?.resultsLocked) {
+      setErr("Resultados bloqueados.");
+      return;
+    }
     const next = matches.map((m) => (m.id === mid ? { ...m, ...patch } : m));
     setMatches(next);
     void persist(next);
@@ -231,10 +237,14 @@ export default function FixturePage() {
   async function submitLockModal(password: string): Promise<boolean> {
     if (!id || !lockModal) return false;
     setErr(null);
+    const body =
+      lockModal === "resultsLock" || lockModal === "resultsUnlock"
+        ? { resultsLocked: lockModal === "resultsLock", lockPassword: password }
+        : { locked: lockModal === "lock", lockPassword: password };
     const r = await fetch(`/api/tournaments/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ locked: lockModal === "lock", lockPassword: password }),
+      body: JSON.stringify(body),
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
@@ -413,6 +423,22 @@ export default function FixturePage() {
           >
             Completar por tiempo
           </button>
+          <button
+            type="button"
+            disabled={!tournament}
+            onClick={() => {
+              if (!tournament) return;
+              setLockModal(tournament.resultsLocked ? "resultsUnlock" : "resultsLock");
+            }}
+            className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-medium disabled:opacity-50 ${
+              tournament?.resultsLocked
+                ? "border-emerald-200 text-emerald-700"
+                : "border-amber-200 text-amber-700"
+            }`}
+          >
+            {tournament?.resultsLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+            {tournament?.resultsLocked ? "Desbloquear resultados" : "Bloquear resultados"}
+          </button>
         </div>
 
         {loading && !tournament ? (
@@ -497,20 +523,22 @@ export default function FixturePage() {
                       min={0}
                       inputMode="numeric"
                       value={m.score1}
+                      disabled={Boolean(tournament?.resultsLocked)}
                       onChange={(e) => updateScore(m.id, { score1: e.target.value })}
                       className={`h-10 w-9 shrink-0 rounded border text-center text-base font-medium focus:border-stone-900 focus:outline-none ${
                         filled ? "border-amber-300 bg-amber-50 text-stone-900" : "border-stone-300 bg-white"
-                      }`}
+                      } disabled:bg-stone-100 disabled:text-stone-400`}
                     />
                     <input
                       type="number"
                       min={0}
                       inputMode="numeric"
                       value={m.score2}
+                      disabled={Boolean(tournament?.resultsLocked)}
                       onChange={(e) => updateScore(m.id, { score2: e.target.value })}
                       className={`h-10 w-9 shrink-0 rounded border text-center text-base font-medium focus:border-stone-900 focus:outline-none ${
                         filled ? "border-amber-300 bg-amber-50 text-stone-900" : "border-stone-300 bg-white"
-                      }`}
+                      } disabled:bg-stone-100 disabled:text-stone-400`}
                     />
                     <div
                       className={`relative min-w-0 flex-1 rounded px-2 py-1.5 text-right text-xs leading-tight ${
@@ -536,11 +564,17 @@ export default function FixturePage() {
       <div className="fixed bottom-0 left-0 right-0 space-y-2 border-t border-stone-200 bg-white px-3 py-2">
         <button
           type="button"
-          disabled={saving}
+          disabled={saving || Boolean(tournament?.locked && tournament?.resultsLocked)}
           onClick={() => void persist(matches)}
           className="w-full rounded-lg bg-amber-600 py-2.5 text-sm font-medium text-white disabled:opacity-50"
         >
-          {saving ? "Guardando…" : tournament?.locked ? "Guardar resultados" : "Guardar partidos"}
+          {saving
+            ? "Guardando…"
+            : tournament?.locked && tournament?.resultsLocked
+              ? "Resultados bloqueados"
+              : tournament?.locked
+                ? "Guardar resultados"
+                : "Guardar partidos"}
         </button>
         <Link
           href={`/torneos/${id}/tabla`}
@@ -630,9 +664,17 @@ export default function FixturePage() {
 
       <TournamentLockModal
         open={lockModal !== null}
-        title={lockModal === "lock" ? "Bloquear torneo" : "Desbloquear torneo"}
+        title={
+          lockModal === "lock"
+            ? "Bloquear torneo"
+            : lockModal === "unlock"
+              ? "Desbloquear torneo"
+              : lockModal === "resultsLock"
+                ? "Bloquear resultados"
+                : "Desbloquear resultados"
+        }
         description="Ingresá la contraseña para confirmar."
-        confirmLabel={lockModal === "lock" ? "Bloquear" : "Desbloquear"}
+        confirmLabel={lockModal === "lock" || lockModal === "resultsLock" ? "Bloquear" : "Desbloquear"}
         onClose={() => setLockModal(null)}
         onSubmit={submitLockModal}
       />
