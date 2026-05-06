@@ -353,7 +353,7 @@ export default function TorneoSetupPage() {
               <h2 className="mb-2 text-sm font-medium">Estado del torneo</h2>
               <p className="mb-3 text-xs text-stone-500">
                 {tournament.locked
-                  ? "Bloqueado: no se pueden cambiar participantes, fixture ni resultados."
+                  ? "Bloqueado: no se pueden cambiar participantes ni fixture. Los resultados siguen habilitados."
                   : "Desbloqueado: se permiten cambios."}
               </p>
               <button

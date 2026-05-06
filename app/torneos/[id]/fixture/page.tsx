@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -36,6 +36,7 @@ export default function FixturePage() {
   const [draft, setDraft] = useState<MatchRow | null>(null);
   const [lockModal, setLockModal] = useState<null | "lock" | "unlock">(null);
   const [modeSaving, setModeSaving] = useState(false);
+  const saveSeqRef = useRef(0);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -91,6 +92,8 @@ export default function FixturePage() {
 
   async function persist(next: MatchRow[]) {
     if (!id) return;
+    const saveSeq = saveSeqRef.current + 1;
+    saveSeqRef.current = saveSeq;
     setSaving(true);
     try {
       const ordered = next.map((m, i) => ({ ...m, order: i }));
@@ -104,9 +107,14 @@ export default function FixturePage() {
         setErr(String(j.error ?? "No se pudo guardar"));
         return;
       }
-      setMatches(await r.json());
+      const saved = await r.json();
+      if (saveSeqRef.current === saveSeq) {
+        setMatches(saved);
+      }
     } finally {
-      setSaving(false);
+      if (saveSeqRef.current === saveSeq) {
+        setSaving(false);
+      }
     }
   }
 
@@ -137,6 +145,12 @@ export default function FixturePage() {
 
   function updateMatch(mid: string, patch: Partial<MatchRow>) {
     setMatches((prev) => prev.map((m) => (m.id === mid ? { ...m, ...patch } : m)));
+  }
+
+  function updateScore(mid: string, patch: Pick<Partial<MatchRow>, "score1" | "score2">) {
+    const next = matches.map((m) => (m.id === mid ? { ...m, ...patch } : m));
+    setMatches(next);
+    void persist(next);
   }
 
   function moveMatch(index: number, dir: -1 | 1) {
@@ -483,8 +497,7 @@ export default function FixturePage() {
                       min={0}
                       inputMode="numeric"
                       value={m.score1}
-                      disabled={Boolean(tournament?.locked)}
-                      onChange={(e) => updateMatch(m.id, { score1: e.target.value })}
+                      onChange={(e) => updateScore(m.id, { score1: e.target.value })}
                       className={`h-10 w-9 shrink-0 rounded border text-center text-base font-medium focus:border-stone-900 focus:outline-none ${
                         filled ? "border-amber-300 bg-amber-50 text-stone-900" : "border-stone-300 bg-white"
                       }`}
@@ -494,8 +507,7 @@ export default function FixturePage() {
                       min={0}
                       inputMode="numeric"
                       value={m.score2}
-                      disabled={Boolean(tournament?.locked)}
-                      onChange={(e) => updateMatch(m.id, { score2: e.target.value })}
+                      onChange={(e) => updateScore(m.id, { score2: e.target.value })}
                       className={`h-10 w-9 shrink-0 rounded border text-center text-base font-medium focus:border-stone-900 focus:outline-none ${
                         filled ? "border-amber-300 bg-amber-50 text-stone-900" : "border-stone-300 bg-white"
                       }`}
@@ -524,11 +536,11 @@ export default function FixturePage() {
       <div className="fixed bottom-0 left-0 right-0 space-y-2 border-t border-stone-200 bg-white px-3 py-2">
         <button
           type="button"
-          disabled={saving || Boolean(tournament?.locked)}
+          disabled={saving}
           onClick={() => void persist(matches)}
           className="w-full rounded-lg bg-amber-600 py-2.5 text-sm font-medium text-white disabled:opacity-50"
         >
-          {saving ? "Guardando…" : "Guardar partidos"}
+          {saving ? "Guardando…" : tournament?.locked ? "Guardar resultados" : "Guardar partidos"}
         </button>
         <Link
           href={`/torneos/${id}/tabla`}

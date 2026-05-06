@@ -24,6 +24,32 @@ function normalizeMatch(m: unknown, fallbackOrder: number): MatchRow | null {
   };
 }
 
+function sameFixtureShape(a: MatchRow, b: MatchRow): boolean {
+  return (
+    a.id === b.id &&
+    a.team1[0] === b.team1[0] &&
+    a.team1[1] === b.team1[1] &&
+    a.team2[0] === b.team2[0] &&
+    a.team2[1] === b.team2[1] &&
+    a.court === b.court &&
+    a.duration === b.duration
+  );
+}
+
+function applyScoreChanges(existing: MatchRow[], incoming: MatchRow[]): MatchRow[] | null {
+  if (existing.length !== incoming.length) return null;
+  const next: MatchRow[] = [];
+  for (let i = 0; i < existing.length; i++) {
+    if (!sameFixtureShape(existing[i], incoming[i])) return null;
+    next.push({
+      ...existing[i],
+      score1: incoming[i].score1,
+      score2: incoming[i].score2,
+    });
+  }
+  return next;
+}
+
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> },
@@ -49,9 +75,6 @@ export async function PUT(
     const t = await getTournament(id);
     if (!t) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
     const body = await req.json();
-    if (t.locked && !verifyTournamentLockPassword(body.lockPassword)) {
-      return NextResponse.json({ error: "Torneo bloqueado" }, { status: 423 });
-    }
     const raw = body.matches;
     if (!Array.isArray(raw)) {
       return NextResponse.json({ error: "matches[] requerido" }, { status: 400 });
@@ -61,6 +84,19 @@ export async function PUT(
       const n = normalizeMatch(row, i);
       if (n) matches.push({ ...n, order: i });
     });
+    if (t.locked && !verifyTournamentLockPassword(body.lockPassword)) {
+      const existing = await getMatches(id);
+      const scoresOnly = applyScoreChanges(existing, matches);
+      if (!scoresOnly) {
+        return NextResponse.json(
+          { error: "Torneo bloqueado: solo se pueden actualizar resultados" },
+          { status: 423 },
+        );
+      }
+      await saveMatches(id, scoresOnly);
+      await syncPlayerAggregates();
+      return NextResponse.json(scoresOnly);
+    }
     await saveMatches(id, matches);
     await syncPlayerAggregates();
     return NextResponse.json(matches);
