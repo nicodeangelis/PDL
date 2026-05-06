@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { Player, Tournament } from "@/lib/types";
 import { TournamentLockModal } from "@/components/tournament-lock-modal";
+import { computeScheduleMinutes } from "@/lib/tournament-schedule-summary";
 
 function defaultLevelForName(name: string): number {
   const normalized = name.trim().toLowerCase();
@@ -214,11 +215,15 @@ export default function TorneoSetupPage() {
     if (n < 4 || n % 4 !== 0) return null;
     const numPairs = n / 2;
     const numMatches = (numPairs * (numPairs - 1)) / 2;
-    const rounds = Math.ceil(numMatches / Math.max(1, courts));
-    const totalMin = rounds * matchTimeMin + Math.max(0, rounds - 1) * restTimeMin;
+    const { rounds, playMin, restGaps, restTotal, totalMin } = computeScheduleMinutes(
+      numMatches,
+      courts,
+      matchTimeMin,
+      restTimeMin,
+    );
     const hours = Math.floor(totalMin / 60);
     const mins = totalMin % 60;
-    return { numMatches, rounds, hours, mins };
+    return { numMatches, rounds, playMin, restGaps, restTotal, hours, mins };
   }, [participantIds.length, courts, matchTimeMin, restTimeMin]);
 
   if (!id) return null;
@@ -440,11 +445,35 @@ export default function TorneoSetupPage() {
 
             {summary && (
               <section className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                <p className="mb-1 font-medium">Resumen</p>
+                <p className="mb-1 font-medium">Resumen de tiempo</p>
                 <p>
-                  {summary.numMatches} partidos en {summary.rounds} rondas →{" "}
-                  {summary.hours > 0 ? `${summary.hours}h ` : ""}
-                  {summary.mins}min total
+                  {summary.numMatches} partidos en {summary.rounds} rondas ({courts} canchas en paralelo):{" "}
+                  <strong>
+                    {summary.playMin} min
+                  </strong>{" "}
+                  de juego ({summary.rounds} × {matchTimeMin} min, no {summary.numMatches} × {matchTimeMin}).
+                </p>
+                <p className="mt-1">
+                  {summary.restGaps > 0 ? (
+                    <>
+                      Descanso entre rondas: {summary.restGaps} × {restTimeMin} min ={" "}
+                      <strong>{summary.restTotal} min</strong>. Total aprox.{" "}
+                      <strong>
+                        {summary.hours > 0 ? `${summary.hours}h ` : ""}
+                        {summary.mins}min
+                      </strong>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Total aprox.{" "}
+                      <strong>
+                        {summary.hours > 0 ? `${summary.hours}h ` : ""}
+                        {summary.mins}min
+                      </strong>
+                      .
+                    </>
+                  )}
                 </p>
               </section>
             )}

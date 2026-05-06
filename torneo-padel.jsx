@@ -244,15 +244,31 @@ export default function TorneoPadel() {
           {players.length >= 4 && players.length % 4 === 0 && (() => {
             const numPairs = players.length / 2;
             const numMatches = (numPairs * (numPairs - 1)) / 2;
-            const rounds = Math.ceil(numMatches / courts);
-            const totalMin = rounds * matchTime + (rounds - 1) * restTime;
+            const rounds = Math.ceil(numMatches / Math.max(1, courts));
+            const playMin = rounds * matchTime;
+            const restGaps = Math.max(0, rounds - 1);
+            const restTotal = restGaps * restTime;
+            const totalMin = playMin + restTotal;
             const hours = Math.floor(totalMin / 60);
             const mins = totalMin % 60;
             return (
               <section className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900">
-                <p className="font-medium mb-1">Resumen</p>
+                <p className="font-medium mb-1">Resumen de tiempo</p>
                 <p>
-                  {numMatches} partidos en {rounds} rondas → {hours > 0 ? `${hours}h ` : ""}{mins}min total
+                  {numMatches} partidos en {rounds} rondas ({courts} canchas en paralelo):{" "}
+                  <strong>{playMin} min</strong> de juego ({rounds} × {matchTime} min, no {numMatches} × {matchTime}).
+                </p>
+                <p className="mt-1">
+                  {restGaps > 0 ? (
+                    <>
+                      Descanso entre rondas: {restGaps} × {restTime} min = <strong>{restTotal} min</strong>. Total
+                      aprox. <strong>{hours > 0 ? `${hours}h ` : ""}{mins}min</strong>.
+                    </>
+                  ) : (
+                    <>
+                      Total aprox. <strong>{hours > 0 ? `${hours}h ` : ""}{mins}min</strong>.
+                    </>
+                  )}
                 </p>
               </section>
             );
