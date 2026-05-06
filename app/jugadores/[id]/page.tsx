@@ -14,6 +14,9 @@ export default function JugadorDetailPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editLevel, setEditLevel] = useState(3);
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -29,6 +32,8 @@ export default function JugadorDetailPage() {
       if (!r.ok) throw new Error("fail");
       const data = await r.json();
       setPlayer(data.player);
+      setEditName(data.player.fullName);
+      setEditLevel(data.player.level);
       setCareer(data.career);
       setHistory(data.history ?? []);
     } catch {
@@ -41,6 +46,27 @@ export default function JugadorDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function saveProfile() {
+    if (!id || !editName.trim()) return;
+    setSaving(true);
+    setErr(null);
+    try {
+      const r = await fetch(`/api/players/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName: editName.trim(), level: editLevel }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setErr(String(j.error ?? "Error al guardar"));
+        return;
+      }
+      setPlayer(j);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const c = career ?? {
     tournamentsPlayed: 0,
@@ -79,9 +105,39 @@ export default function JugadorDetailPage() {
         )}
         {player && (
           <>
+            <p className="text-lg font-medium text-stone-900">{player.fullName}</p>
+            <p className="text-xs text-stone-500">Nivel {player.level}</p>
+
             <div className="rounded-xl border border-stone-200 bg-white p-4">
-              <h1 className="text-lg font-medium">{player.fullName}</h1>
-              <p className="text-xs text-stone-500">Nivel {player.level}</p>
+              <h2 className="mb-3 text-sm font-medium">Editar datos</h2>
+              <div className="flex flex-col gap-2">
+                <input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none"
+                />
+                <div className="flex gap-2">
+                  <select
+                    value={editLevel}
+                    onChange={(e) => setEditLevel(Number(e.target.value))}
+                    className="flex-1 rounded-lg border border-stone-300 bg-white px-2 py-2 text-sm"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                      <option key={n} value={n}>
+                        Nivel {n}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void saveProfile()}
+                    className="rounded-lg bg-stone-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="rounded-xl border border-stone-200 bg-white p-4">
