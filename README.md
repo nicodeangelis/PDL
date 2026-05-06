@@ -1,13 +1,22 @@
 # Torneo Pádel (PDL)
 
-Web app mobile first para gestionar **jugadores**, **torneos** (americano por parejas) y **resultados**, con persistencia en **Vercel KV / Upstash Redis**.
+Web app mobile first para gestionar **jugadores**, **torneos** (americano por parejas) y **resultados**, con datos en **Redis**.
+
+Hay dos modos (prioridad: **`REDIS_URL`** si está definida):
+
+| Variable | Uso |
+|----------|-----|
+| `REDIS_URL` | Conexión **TCP** `redis://` o `rediss://` (ej. Redis Cloud). |
+| `KV_REST_API_URL` + `KV_REST_API_TOKEN` | API **REST** Upstash / integración Vercel clásica. |
+
+No subas la URL con contraseña al repo; usá solo **Variables de entorno** en Vercel o `.env.local`.
 
 ## Desarrollo local
 
 ```bash
 npm install
 cp .env.example .env.local
-# Completá KV_REST_API_URL y KV_REST_API_TOKEN desde Vercel o Upstash
+# En .env.local: REDIS_URL=redis://...  O  KV_REST_API_* 
 npm run dev
 ```
 
@@ -17,8 +26,10 @@ Abrir [http://localhost:3000](http://localhost:3000).
 
 1. Creá el repositorio en GitHub y subí este código.
 2. En Vercel: **Add New Project** → importá el repo.
-3. En **Storage**, enlazá una base **Redis** (sustituto de KV); Vercel inyecta `KV_REST_API_URL` y `KV_REST_API_TOKEN`.
-4. Deploy.
+3. **Settings → Environment Variables**: agregá `REDIS_URL` (Redis Cloud) o enlazá Redis del Marketplace para obtener `KV_REST_API_*`.
+4. **Redeploy** tras cambiar variables.
+
+En serverless, TCP implica una conexión por instancia fría; para mucho tráfico conviene REST (Upstash).
 
 ## Flujo de uso
 

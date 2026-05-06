@@ -9,7 +9,7 @@ export async function GET() {
   } catch (e) {
     console.error(e);
     return NextResponse.json(
-      { error: "No se pudo leer jugadores. ¿Configuraste KV_REST_API_URL y KV_REST_API_TOKEN?" },
+      { error: "No se pudo leer jugadores. ¿REDIS_URL o KV_REST_API_URL + KV_REST_API_TOKEN?" },
       { status: 503 },
     );
   }

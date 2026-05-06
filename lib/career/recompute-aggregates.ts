@@ -7,7 +7,7 @@ import type {
   Tournament,
 } from "@/lib/types";
 import { K } from "@/lib/kv/keys";
-import { kv } from "@vercel/kv";
+import type { JsonStore } from "@/lib/kv/store";
 
 const HISTORY_LIMIT = 30;
 
@@ -50,7 +50,7 @@ function standingToCareerDelta(s: {
  * Pensado para volúmenes chicos (club); mantiene consistencia al editar resultados.
  */
 export async function recomputeAllPlayerAggregates(
-  store: typeof kv,
+  store: JsonStore,
   allPlayers: Player[],
 ): Promise<void> {
   const playerById = new Map(allPlayers.map((p) => [p.id, p]));
@@ -134,12 +134,12 @@ export async function recomputeAllPlayerAggregates(
     }
   }
 
-  const pipeline = store.pipeline();
+  const entries: { key: string; value: unknown }[] = [];
   for (const p of allPlayers) {
     const c = careerAcc.get(p.id) ?? emptyCareer();
-    pipeline.set(K.playerCareer(p.id), c);
+    entries.push({ key: K.playerCareer(p.id), value: c });
     const h = (historyAcc.get(p.id) ?? []).slice(-HISTORY_LIMIT);
-    pipeline.set(K.playerHistory(p.id), h);
+    entries.push({ key: K.playerHistory(p.id), value: h });
   }
-  await pipeline.exec();
+  await store.setMany(entries);
 }
