@@ -3,6 +3,8 @@ import { getMatches, getTournament, saveMatches } from "@/lib/kv/tournaments";
 import type { MatchRow } from "@/lib/types";
 import { syncPlayerAggregates } from "@/lib/career/sync";
 
+const LOCK_PASSWORD = "0102";
+
 function normalizeMatch(m: unknown, fallbackOrder: number): MatchRow | null {
   if (!m || typeof m !== "object") return null;
   const o = m as Record<string, unknown>;
@@ -48,6 +50,9 @@ export async function PUT(
     const t = await getTournament(id);
     if (!t) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
     const body = await req.json();
+    if (t.locked && body.lockPassword !== LOCK_PASSWORD) {
+      return NextResponse.json({ error: "Torneo bloqueado" }, { status: 423 });
+    }
     const raw = body.matches;
     if (!Array.isArray(raw)) {
       return NextResponse.json({ error: "matches[] requerido" }, { status: 400 });

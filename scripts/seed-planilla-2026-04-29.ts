@@ -48,16 +48,16 @@ const Id = {
 } as const;
 
 const PLAYERS_META: { id: string; fullName: string; level: number }[] = [
-  { id: Id.santiago, fullName: "Santiago", level: 7 },
-  { id: Id.cristian, fullName: "Cristián", level: 7 },
-  { id: Id.guille, fullName: "Guille", level: 6 },
-  { id: Id.pablo, fullName: "Pablo", level: 5 },
-  { id: Id.nico, fullName: "Nico", level: 5 },
-  { id: Id.diego, fullName: "Diego", level: 5 },
-  { id: Id.wally, fullName: "Wally", level: 6 },
-  { id: Id.mati, fullName: "Mati", level: 4 },
+  { id: Id.santiago, fullName: "Santiago", level: 5 },
+  { id: Id.cristian, fullName: "Cristián", level: 5 },
+  { id: Id.guille, fullName: "Guille", level: 3 },
+  { id: Id.pablo, fullName: "Pablo", level: 3 },
+  { id: Id.nico, fullName: "Nico", level: 3 },
+  { id: Id.diego, fullName: "Diego", level: 3 },
+  { id: Id.wally, fullName: "Wally", level: 3 },
+  { id: Id.mati, fullName: "Mati", level: 3 },
   { id: Id.mariano, fullName: "Mariano", level: 3 },
-  { id: Id.ale, fullName: "Ale", level: 4 },
+  { id: Id.ale, fullName: "Ale", level: 3 },
 ];
 
 function row(

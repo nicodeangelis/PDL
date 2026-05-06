@@ -16,6 +16,14 @@ import {
 } from "lucide-react";
 import type { Player, Tournament } from "@/lib/types";
 
+const LOCK_PASSWORD = "0102";
+
+function defaultLevelForName(name: string): number {
+  const normalized = name.trim().toLowerCase();
+  if (normalized === "santiago" || normalized === "cristian" || normalized === "cristián") return 5;
+  return 3;
+}
+
 export default function TorneoSetupPage() {
   const { id: tid } = useParams();
   const id = typeof tid === "string" ? tid : null;
@@ -73,6 +81,10 @@ export default function TorneoSetupPage() {
 
   async function saveMeta(): Promise<boolean> {
     if (!id) return false;
+    if (tournament?.locked) {
+      setErr("Torneo bloqueado. Desbloquealo para editar.");
+      return false;
+    }
     setSaving(true);
     setErr(null);
     try {
@@ -101,6 +113,10 @@ export default function TorneoSetupPage() {
   }
 
   async function goFixture() {
+    if (tournament?.locked) {
+      router.push(`/torneos/${id}/fixture`);
+      return;
+    }
     const ok = await saveMeta();
     if (ok) router.push(`/torneos/${id}/fixture`);
   }
@@ -123,11 +139,16 @@ export default function TorneoSetupPage() {
   }
 
   async function quickAddPlayer() {
+    if (tournament?.locked) {
+      setErr("Torneo bloqueado. Desbloquealo para editar.");
+      return;
+    }
     if (!quickName.trim()) return;
+    const computedLevel = defaultLevelForName(quickName);
     const r = await fetch("/api/players", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullName: quickName.trim(), level: quickLevel }),
+      body: JSON.stringify({ fullName: quickName.trim(), level: computedLevel }),
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
@@ -142,12 +163,47 @@ export default function TorneoSetupPage() {
 
   async function deleteTournament() {
     if (!id || !confirm("¿Eliminar torneo y todos sus partidos?")) return;
-    const r = await fetch(`/api/tournaments/${id}`, { method: "DELETE" });
+    let suffix = "";
+    if (tournament?.locked) {
+      const pass = prompt("Password para eliminar torneo bloqueado");
+      if (pass !== LOCK_PASSWORD) {
+        setErr("Password inválido");
+        return;
+      }
+      suffix = `?lockPassword=${encodeURIComponent(pass)}`;
+    }
+    const r = await fetch(`/api/tournaments/${id}${suffix}`, { method: "DELETE" });
     if (!r.ok) {
       setErr("No se pudo eliminar");
       return;
     }
     router.push("/torneos");
+  }
+
+  async function toggleLock(nextLocked: boolean) {
+    if (!id) return;
+    const pass = prompt("Password");
+    if (pass !== LOCK_PASSWORD) {
+      setErr("Password inválido");
+      return;
+    }
+    setSaving(true);
+    setErr(null);
+    try {
+      const r = await fetch(`/api/tournaments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locked: nextLocked, lockPassword: pass }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setErr(String(j.error ?? "No se pudo actualizar bloqueo"));
+        return;
+      }
+      setTournament(j);
+    } finally {
+      setSaving(false);
+    }
   }
 
   const summary = useMemo(() => {
@@ -246,7 +302,28 @@ export default function TorneoSetupPage() {
                 onClick={() => void saveMeta()}
                 className="mt-3 w-full rounded-lg border border-stone-300 py-2 text-sm font-medium active:bg-stone-50 disabled:opacity-50"
               >
-                Guardar cambios
+                {tournament.locked ? "Torneo bloqueado" : "Guardar cambios"}
+              </button>
+            </section>
+
+            <section className="rounded-xl border border-stone-200 bg-white p-4">
+              <h2 className="mb-2 text-sm font-medium">Estado del torneo</h2>
+              <p className="mb-3 text-xs text-stone-500">
+                {tournament.locked
+                  ? "Bloqueado: no se pueden cambiar participantes, fixture ni resultados."
+                  : "Desbloqueado: se permiten cambios."}
+              </p>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void toggleLock(!tournament.locked)}
+                className={`w-full rounded-lg py-2 text-sm font-medium ${
+                  tournament.locked
+                    ? "border border-emerald-200 text-emerald-700"
+                    : "border border-amber-200 text-amber-700"
+                }`}
+              >
+                {tournament.locked ? "Desbloquear (0102)" : "Bloquear (0102)"}
               </button>
             </section>
 
@@ -266,7 +343,11 @@ export default function TorneoSetupPage() {
                 <input
                   placeholder="Nuevo jugador rápido"
                   value={quickName}
-                  onChange={(e) => setQuickName(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setQuickName(val);
+                    setQuickLevel(defaultLevelForName(val));
+                  }}
                   className="flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none"
                 />
                 <select
@@ -282,8 +363,9 @@ export default function TorneoSetupPage() {
                 </select>
                 <button
                   type="button"
+                  disabled={tournament.locked}
                   onClick={() => void quickAddPlayer()}
-                  className="rounded-lg bg-stone-900 px-3 py-2 text-white"
+                  className="rounded-lg bg-stone-900 px-3 py-2 text-white disabled:bg-stone-400"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -300,6 +382,7 @@ export default function TorneoSetupPage() {
                     >
                       <button
                         type="button"
+                        disabled={tournament.locked}
                         className="p-1 text-stone-400"
                         onClick={() => moveParticipant(idx, -1)}
                         aria-label="Subir"
@@ -308,6 +391,7 @@ export default function TorneoSetupPage() {
                       </button>
                       <button
                         type="button"
+                        disabled={tournament.locked}
                         className="p-1 text-stone-400"
                         onClick={() => moveParticipant(idx, 1)}
                         aria-label="Bajar"
@@ -320,6 +404,7 @@ export default function TorneoSetupPage() {
                       </span>
                       <button
                         type="button"
+                        disabled={tournament.locked}
                         className="text-stone-400"
                         onClick={() => setParticipantIds((prev) => prev.filter((x) => x !== pid))}
                       >
@@ -336,10 +421,11 @@ export default function TorneoSetupPage() {
                   <li key={p.id}>
                     <button
                       type="button"
+                      disabled={tournament.locked}
                       onClick={() => togglePlayer(p.id)}
                       className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm ${
                         selectedSet.has(p.id) ? "bg-stone-900 text-white" : "bg-stone-50"
-                      }`}
+                      } disabled:opacity-50`}
                     >
                       <span className="flex-1 truncate">{p.fullName}</span>
                       <span className="text-xs opacity-80">Nv{p.level}</span>

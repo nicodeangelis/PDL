@@ -3,6 +3,13 @@ import { deleteTournament, getTournament, saveTournament } from "@/lib/kv/tourna
 import type { Tournament } from "@/lib/types";
 import { syncPlayerAggregates } from "@/lib/career/sync";
 
+const LOCK_PASSWORD = "0102";
+
+function hasLockPermission(body: unknown): boolean {
+  if (!body || typeof body !== "object") return false;
+  return (body as { lockPassword?: string }).lockPassword === LOCK_PASSWORD;
+}
+
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> },
@@ -27,6 +34,14 @@ export async function PATCH(
     const existing = await getTournament(id);
     if (!existing) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
     const body = await req.json();
+    const canBypassLock = hasLockPermission(body);
+
+    if (existing.locked && !canBypassLock && body.locked === undefined) {
+      return NextResponse.json({ error: "Torneo bloqueado" }, { status: 423 });
+    }
+    if (body.locked !== undefined && !canBypassLock) {
+      return NextResponse.json({ error: "Password inválido" }, { status: 401 });
+    }
 
     const next: Tournament = {
       ...existing,
@@ -45,6 +60,7 @@ export async function PATCH(
       participantIds: Array.isArray(body.participantIds)
         ? body.participantIds.map((x: unknown) => String(x))
         : existing.participantIds,
+      locked: body.locked !== undefined ? Boolean(body.locked) : Boolean(existing.locked),
     };
 
     if (!next.dateISO) {
@@ -60,13 +76,18 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
   const { id } = await ctx.params;
   try {
     const existing = await getTournament(id);
     if (!existing) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+    const url = new URL(req.url);
+    const lockPassword = url.searchParams.get("lockPassword");
+    if (existing.locked && lockPassword !== LOCK_PASSWORD) {
+      return NextResponse.json({ error: "Torneo bloqueado" }, { status: 423 });
+    }
     await deleteTournament(id);
     await syncPlayerAggregates();
     return NextResponse.json({ ok: true });

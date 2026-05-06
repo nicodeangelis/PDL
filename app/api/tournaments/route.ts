@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       restTimeMin,
       participantIds,
       createdAt: new Date().toISOString(),
+      locked: false,
     };
     await saveTournament(t);
     await saveMatches(t.id, []);

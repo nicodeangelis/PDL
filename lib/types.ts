@@ -14,6 +14,7 @@ export type Tournament = {
   restTimeMin: number;
   participantIds: string[];
   createdAt: string;
+  locked?: boolean;
 };
 
 export type MatchRow = {
