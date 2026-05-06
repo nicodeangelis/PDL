@@ -40,6 +40,19 @@ En serverless, TCP implica una conexión por instancia fría; para mucho tráfic
 
 Los datos no se consultan en bucle: se cargan al abrir cada pantalla o al pulsar **Actualizar**.
 
+## Importar planilla 29/04/2026
+
+Script que crea los 10 jugadores (Fede → **Wally**), el torneo **Americano 29/04/2026 (planilla)** y **12 partidos** (5 rondas × 2 canchas) alineados con la planilla escaneada.
+
+```bash
+# REDIS_URL debe ser la URL tcp real (redis://…). Si vercel env pull dejó REDIS_URL="", copiala desde Redis Cloud / Vercel.
+npm run seed:planilla
+```
+
+En la app: **Torneos** → abrir `seed-20260429-planilla` → **Fixture / Tabla**.
+
+Limitación: la app suma a cada socio el **mismo** marcador del equipo en cada partido; si en la planilla repartían juegos distintos entre socios, los totales pueden diferir un poco del papel.
+
 ## Referencia original
 
 La lógica de fixture y la estética (Tailwind stone/amber, Lucide) provienen del prototipo `torneo-padel.jsx` en este repo.
