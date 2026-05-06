@@ -49,20 +49,34 @@ export default function TorneoPadel() {
     // Genero rondas tipo round-robin de parejas
     const pairs = top.map((t, i) => ({ id: `p${i}`, players: [t, bottom[i]], level: t.level + bottom[i].level }));
 
-    // Round robin: cada pareja juega contra cada otra pareja
+    // Round robin por tandas: en canchas paralelas no se repite ninguna pareja/jugador.
     const generated = [];
     let matchId = 1;
-    for (let i = 0; i < pairs.length; i++) {
-      for (let j = i + 1; j < pairs.length; j++) {
+    const rotating = [...pairs];
+    const rounds = pairs.length - 1;
+    const matchesPerRound = pairs.length / 2;
+    for (let round = 0; round < rounds; round++) {
+      const roundMatches = [];
+      for (let i = 0; i < matchesPerRound; i++) {
+        roundMatches.push([i, pairs.length - 1 - i]);
+      }
+
+      for (let i = 0; i < roundMatches.length; i++) {
+        const [a, b] = roundMatches[i];
         generated.push({
           id: matchId++,
-          team1: pairs[i],
-          team2: pairs[j],
+          team1: rotating[a],
+          team2: rotating[b],
           score1: "",
           score2: "",
-          court: ((generated.length) % courts) + 1,
+          court: (i % Math.max(1, courts)) + 1,
         });
       }
+
+      const fixed = rotating[0];
+      const rest = rotating.slice(1);
+      rest.unshift(rest.pop());
+      rotating.splice(0, rotating.length, fixed, ...rest);
     }
 
     // Tiempo por partido lo define el usuario
@@ -323,17 +337,26 @@ export default function TorneoPadel() {
             const filled = m.score1 !== "" && m.score2 !== "";
             const w1 = filled && parseInt(m.score1) > parseInt(m.score2);
             const w2 = filled && parseInt(m.score2) > parseInt(m.score1);
+            const tied = filled && !w1 && !w2;
             return (
               <article
                 key={m.id}
-                className={`bg-white rounded-lg border px-2 py-2 ${filled ? "border-stone-300" : "border-stone-200"}`}
+                className={`rounded-lg border px-2 py-2 ${filled ? "border-amber-200 bg-amber-50/60 shadow-sm" : "border-stone-200 bg-white"}`}
               >
                 <div className="flex items-center justify-between mb-1.5 text-[10px] text-stone-500">
-                  <span className="font-medium">P{idx + 1} · C{m.court}</span>
+                  <span className="font-medium flex items-center gap-1">
+                    P{idx + 1} · C{m.court}
+                    {filled && (
+                      <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold text-amber-800">
+                        {tied ? "Empate" : "Cerrado"}
+                      </span>
+                    )}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <div className={`flex-1 min-w-0 text-xs leading-tight px-2 py-1.5 rounded ${w1 ? "bg-green-50 text-green-900" : "bg-stone-50"}`}>
+                  <div className={`relative flex-1 min-w-0 text-xs leading-tight px-2 py-1.5 rounded ${w1 ? "border border-green-200 bg-green-100 text-green-950" : filled ? "bg-white/70 text-stone-700" : "bg-stone-50"}`}>
+                    {w1 && <Trophy className="absolute right-1.5 top-1.5 h-3 w-3 text-amber-600" />}
                     <p className="truncate font-medium">{m.team1.players[0].name}</p>
                     <p className="truncate font-medium">{m.team1.players[1].name}</p>
                   </div>
@@ -343,7 +366,7 @@ export default function TorneoPadel() {
                     inputMode="numeric"
                     value={m.score1}
                     onChange={(e) => updateScore(m.id, "score1", e.target.value)}
-                    className="w-9 h-10 shrink-0 text-center text-base font-medium border border-stone-300 rounded focus:outline-none focus:border-stone-900 bg-white"
+                    className={`w-9 h-10 shrink-0 text-center text-base font-medium border rounded focus:outline-none focus:border-stone-900 ${filled ? "border-amber-300 bg-amber-50 text-stone-900" : "border-stone-300 bg-white"}`}
                   />
                   <input
                     type="number"
@@ -351,9 +374,10 @@ export default function TorneoPadel() {
                     inputMode="numeric"
                     value={m.score2}
                     onChange={(e) => updateScore(m.id, "score2", e.target.value)}
-                    className="w-9 h-10 shrink-0 text-center text-base font-medium border border-stone-300 rounded focus:outline-none focus:border-stone-900 bg-white"
+                    className={`w-9 h-10 shrink-0 text-center text-base font-medium border rounded focus:outline-none focus:border-stone-900 ${filled ? "border-amber-300 bg-amber-50 text-stone-900" : "border-stone-300 bg-white"}`}
                   />
-                  <div className={`flex-1 min-w-0 text-xs leading-tight px-2 py-1.5 rounded text-right ${w2 ? "bg-green-50 text-green-900" : "bg-stone-50"}`}>
+                  <div className={`relative flex-1 min-w-0 text-xs leading-tight px-2 py-1.5 rounded text-right ${w2 ? "border border-green-200 bg-green-100 text-green-950" : filled ? "bg-white/70 text-stone-700" : "bg-stone-50"}`}>
+                    {w2 && <Trophy className="absolute left-1.5 top-1.5 h-3 w-3 text-amber-600" />}
                     <p className="truncate font-medium">{m.team2.players[0].name}</p>
                     <p className="truncate font-medium">{m.team2.players[1].name}</p>
                   </div>

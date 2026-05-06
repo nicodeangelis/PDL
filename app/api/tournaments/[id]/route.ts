@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { deleteTournament, getTournament, saveTournament } from "@/lib/kv/tournaments";
-import type { Tournament } from "@/lib/types";
+import type { FixtureMode, Tournament } from "@/lib/types";
 import { syncPlayerAggregates } from "@/lib/career/sync";
 import { verifyTournamentLockPassword } from "@/lib/server/tournamentLock";
+
+const FIXTURE_MODES = new Set<FixtureMode>(["fixed_balanced", "rotating_balanced", "rotating_random"]);
+
+function normalizeFixtureMode(value: unknown, fallback: FixtureMode = "rotating_balanced"): FixtureMode {
+  return FIXTURE_MODES.has(value as FixtureMode) ? (value as FixtureMode) : fallback;
+}
 
 function hasLockPermission(body: unknown): boolean {
   if (!body || typeof body !== "object") return false;
@@ -56,6 +62,14 @@ export async function PATCH(
         body.restTimeMin !== undefined
           ? Math.max(0, Number(body.restTimeMin) || existing.restTimeMin)
           : existing.restTimeMin,
+      totalTimeMin:
+        body.totalTimeMin !== undefined
+          ? Math.max(0, Number(body.totalTimeMin) || 0)
+          : existing.totalTimeMin,
+      fixtureMode:
+        body.fixtureMode !== undefined
+          ? normalizeFixtureMode(body.fixtureMode, existing.fixtureMode ?? "rotating_balanced")
+          : existing.fixtureMode ?? "rotating_balanced",
       participantIds: Array.isArray(body.participantIds)
         ? body.participantIds.map((x: unknown) => String(x))
         : existing.participantIds,

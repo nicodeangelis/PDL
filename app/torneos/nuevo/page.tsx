@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { FixtureMode } from "@/lib/types";
 
 export default function NuevoTorneoPage() {
   const router = useRouter();
@@ -12,6 +13,8 @@ export default function NuevoTorneoPage() {
   const [courts, setCourts] = useState(2);
   const [matchTimeMin, setMatchTimeMin] = useState(15);
   const [restTimeMin, setRestTimeMin] = useState(5);
+  const [totalTimeMin, setTotalTimeMin] = useState(60);
+  const [fixtureMode, setFixtureMode] = useState<FixtureMode>("rotating_balanced");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -28,6 +31,8 @@ export default function NuevoTorneoPage() {
           courts,
           matchTimeMin,
           restTimeMin,
+          totalTimeMin,
+          fixtureMode,
           participantIds: [],
         }),
       });
@@ -115,6 +120,33 @@ export default function NuevoTorneoPage() {
               />
             </label>
           </div>
+          <label className="mt-3 block">
+            <span className="mb-1 block text-xs text-stone-500">Tiempo total disponible (min)</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={totalTimeMin}
+              onChange={(e) => setTotalTimeMin(Number(e.target.value))}
+              onBlur={(e) => setTotalTimeMin(Math.max(0, Number(e.target.value) || 0))}
+              className="w-full rounded-lg border border-stone-300 px-2 py-2 text-sm focus:border-stone-900 focus:outline-none"
+            />
+          </label>
+        </section>
+
+        <section className="rounded-xl border border-stone-200 bg-white p-4">
+          <label className="mb-3 block text-sm font-medium">Modo de fixture</label>
+          <select
+            value={fixtureMode}
+            onChange={(e) => setFixtureMode(e.target.value as FixtureMode)}
+            className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-stone-900 focus:outline-none"
+          >
+            <option value="rotating_balanced">Nivelado rotativo</option>
+            <option value="rotating_random">Aleatorio rotativo</option>
+            <option value="fixed_balanced">Equipos fijos nivelados</option>
+          </select>
+          <p className="mt-2 text-xs text-stone-500">
+            Nivelado evita juntar jugadores fuertes entre sí cuando hay alternativas.
+          </p>
         </section>
       </main>
 

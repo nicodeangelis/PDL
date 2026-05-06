@@ -16,3 +16,15 @@ export function computeScheduleMinutes(
   const totalMin = playMin + restTotal;
   return { rounds, playMin, restGaps, restTotal, totalMin };
 }
+
+export function computeRoundsThatFit(
+  totalTimeMin: number | undefined,
+  matchTimeMin: number,
+  restTimeMin: number,
+) {
+  const total = Math.max(0, Number(totalTimeMin) || 0);
+  const match = Math.max(1, Number(matchTimeMin) || 1);
+  const rest = Math.max(0, Number(restTimeMin) || 0);
+  if (total < match) return 0;
+  return Math.floor((total + rest) / (match + rest));
+}

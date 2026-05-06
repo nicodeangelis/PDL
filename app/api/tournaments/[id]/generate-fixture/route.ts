@@ -29,6 +29,7 @@ export async function POST(
       players,
       courts: t.courts,
       matchTimeMin: t.matchTimeMin,
+      mode: t.fixtureMode ?? "rotating_balanced",
     });
 
     if (!gen.ok) {

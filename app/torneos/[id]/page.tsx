@@ -14,7 +14,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import type { Player, Tournament } from "@/lib/types";
+import type { FixtureMode, Player, Tournament } from "@/lib/types";
 import { TournamentLockModal } from "@/components/tournament-lock-modal";
 import { computeScheduleMinutes } from "@/lib/tournament-schedule-summary";
 
@@ -40,6 +40,8 @@ export default function TorneoSetupPage() {
   const [courts, setCourts] = useState(2);
   const [matchTimeMin, setMatchTimeMin] = useState(15);
   const [restTimeMin, setRestTimeMin] = useState(5);
+  const [totalTimeMin, setTotalTimeMin] = useState(60);
+  const [fixtureMode, setFixtureMode] = useState<FixtureMode>("rotating_balanced");
   const [participantIds, setParticipantIds] = useState<string[]>([]);
 
   const [quickName, setQuickName] = useState("");
@@ -64,6 +66,8 @@ export default function TorneoSetupPage() {
       setCourts(t.courts);
       setMatchTimeMin(t.matchTimeMin);
       setRestTimeMin(t.restTimeMin);
+      setTotalTimeMin(t.totalTimeMin ?? 60);
+      setFixtureMode(t.fixtureMode ?? "rotating_balanced");
       setParticipantIds(t.participantIds);
 
       if (pl.ok) setAllPlayers(await pl.json());
@@ -98,6 +102,8 @@ export default function TorneoSetupPage() {
           courts,
           matchTimeMin,
           restTimeMin,
+          totalTimeMin,
+          fixtureMode,
           participantIds,
         }),
       });
@@ -221,10 +227,16 @@ export default function TorneoSetupPage() {
       matchTimeMin,
       restTimeMin,
     );
+    const configuredTotal = Math.max(0, totalTimeMin);
+    const roundsThatFit =
+      configuredTotal < matchTimeMin
+        ? 0
+        : Math.floor((configuredTotal + restTimeMin) / (matchTimeMin + restTimeMin));
+    const matchesThatFit = Math.min(numMatches, roundsThatFit * Math.max(1, courts));
     const hours = Math.floor(totalMin / 60);
     const mins = totalMin % 60;
-    return { numMatches, rounds, playMin, restGaps, restTotal, hours, mins };
-  }, [participantIds.length, courts, matchTimeMin, restTimeMin]);
+    return { numMatches, rounds, playMin, restGaps, restTotal, hours, mins, configuredTotal, roundsThatFit, matchesThatFit };
+  }, [participantIds.length, courts, matchTimeMin, restTimeMin, totalTimeMin]);
 
   if (!id) return null;
 
@@ -304,6 +316,29 @@ export default function TorneoSetupPage() {
                   />
                 </label>
               </div>
+              <label className="mt-3 block">
+                <span className="mb-1 block text-xs text-stone-500">Tiempo total disponible (min)</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={totalTimeMin}
+                  onChange={(e) => setTotalTimeMin(Number(e.target.value))}
+                  onBlur={(e) => setTotalTimeMin(Math.max(0, Number(e.target.value) || 0))}
+                  className="w-full rounded-lg border border-stone-300 px-2 py-2 text-sm focus:border-stone-900 focus:outline-none"
+                />
+              </label>
+              <label className="mt-3 block">
+                <span className="mb-1 block text-xs text-stone-500">Modo de fixture</span>
+                <select
+                  value={fixtureMode}
+                  onChange={(e) => setFixtureMode(e.target.value as FixtureMode)}
+                  className="w-full rounded-lg border border-stone-300 bg-white px-2 py-2 text-sm focus:border-stone-900 focus:outline-none"
+                >
+                  <option value="rotating_balanced">Nivelado rotativo</option>
+                  <option value="rotating_random">Aleatorio rotativo</option>
+                  <option value="fixed_balanced">Equipos fijos nivelados</option>
+                </select>
+              </label>
               <button
                 type="button"
                 disabled={saving}
@@ -474,6 +509,11 @@ export default function TorneoSetupPage() {
                       .
                     </>
                   )}
+                </p>
+                <p className="mt-1 rounded-lg bg-white/70 px-2 py-1 text-amber-950">
+                  Con <strong>{summary.configuredTotal} min</strong> disponibles entran{" "}
+                  <strong>{summary.roundsThatFit} rondas</strong> /{" "}
+                  <strong>{summary.matchesThatFit} partidos</strong> como máximo.
                 </p>
               </section>
             )}

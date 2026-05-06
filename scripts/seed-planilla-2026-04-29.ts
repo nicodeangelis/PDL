@@ -94,24 +94,23 @@ function buildMatches(): MatchRow[] {
   );
   // R2
   out.push(
-    row(order++, c(0), Id.santiago, Id.guille, Id.cristian, Id.pablo, 8, 4),
-    row(order++, c(1), Id.nico, Id.wally, Id.mariano, Id.ale, 4, 0),
+    row(order++, c(0), Id.mariano, Id.ale, Id.santiago, Id.guille, 0, 8),
+    row(order++, c(1), Id.cristian, Id.pablo, Id.nico, Id.wally, 4, 4),
   );
   // R3
   out.push(
-    row(order++, c(0), Id.cristian, Id.diego, Id.santiago, Id.mati, 8, 6),
-    // Marcador del equipo Mariano+Ale (suma juegos del equipo; alinea TOTAL Mariano con planilla ~7).
-    row(order++, c(1), Id.guille, Id.wally, Id.mariano, Id.ale, 7, 3),
+    row(order++, c(0), Id.diego, Id.mati, Id.mariano, Id.cristian, 5, 3),
+    row(order++, c(1), Id.ale, Id.santiago, Id.guille, Id.wally, 1, 7),
   );
-  // R4 (S+N 5 / C+P 10 ; D+A 3 vs M+Ma 0)
+  // R4
   out.push(
-    row(order++, c(0), Id.santiago, Id.nico, Id.cristian, Id.pablo, 5, 10),
-    row(order++, c(1), Id.diego, Id.ale, Id.mati, Id.mariano, 3, 0),
+    row(order++, c(0), Id.nico, Id.pablo, Id.diego, Id.ale, 3, 3),
+    row(order++, c(1), Id.mati, Id.mariano, Id.santiago, Id.cristian, 0, 10),
   );
   // R5
   out.push(
-    row(order++, c(0), Id.guille, Id.pablo, Id.nico, Id.diego, 7, 6),
-    row(order++, c(1), Id.wally, Id.ale, Id.mati, Id.mariano, 7, 4),
+    row(order++, c(0), Id.guille, Id.wally, Id.nico, Id.mati, 6, 3),
+    row(order++, c(1), Id.pablo, Id.diego, Id.mariano, Id.ale, 7, 4),
   );
 
   return out;
@@ -139,6 +138,8 @@ async function main() {
     courts: 2,
     matchTimeMin: 15,
     restTimeMin: 5,
+    totalTimeMin: 85,
+    fixtureMode: "fixed_balanced",
     participantIds: PLAYERS_META.map((p) => p.id),
     createdAt: now,
   };

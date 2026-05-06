@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { listTournaments, saveMatches, saveTournament } from "@/lib/kv/tournaments";
-import type { Tournament } from "@/lib/types";
+import type { FixtureMode, Tournament } from "@/lib/types";
+
+const FIXTURE_MODES = new Set<FixtureMode>(["fixed_balanced", "rotating_balanced", "rotating_random"]);
+
+function normalizeFixtureMode(value: unknown): FixtureMode {
+  return FIXTURE_MODES.has(value as FixtureMode) ? (value as FixtureMode) : "rotating_balanced";
+}
 
 export async function GET() {
   try {
@@ -24,6 +30,8 @@ export async function POST(req: Request) {
     const courts = Math.max(1, Number(body.courts) || 2);
     const matchTimeMin = Math.max(5, Number(body.matchTimeMin) || 15);
     const restTimeMin = Math.max(0, Number(body.restTimeMin) || 5);
+    const totalTimeMin = Math.max(0, Number(body.totalTimeMin) || 0);
+    const fixtureMode = normalizeFixtureMode(body.fixtureMode);
     const participantIds = Array.isArray(body.participantIds)
       ? body.participantIds.map((x: unknown) => String(x))
       : [];
@@ -35,6 +43,8 @@ export async function POST(req: Request) {
       courts,
       matchTimeMin,
       restTimeMin,
+      totalTimeMin,
+      fixtureMode,
       participantIds,
       createdAt: new Date().toISOString(),
       locked: false,

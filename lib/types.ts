@@ -12,10 +12,14 @@ export type Tournament = {
   courts: number;
   matchTimeMin: number;
   restTimeMin: number;
+  totalTimeMin?: number;
+  fixtureMode?: FixtureMode;
   participantIds: string[];
   createdAt: string;
   locked?: boolean;
 };
+
+export type FixtureMode = "fixed_balanced" | "rotating_balanced" | "rotating_random";
 
 export type MatchRow = {
   id: string;
