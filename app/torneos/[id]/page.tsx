@@ -239,6 +239,7 @@ export default function TorneoSetupPage() {
   }, [participantIds.length, courts, matchTimeMin, restTimeMin, totalTimeMin]);
 
   if (!id) return null;
+  const isLocked = Boolean(tournament?.locked);
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">
@@ -272,14 +273,16 @@ export default function TorneoSetupPage() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mb-3 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none"
+                disabled={isLocked}
+                className="mb-3 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none disabled:bg-stone-100 disabled:text-stone-500"
               />
               <label className="mb-2 block text-xs text-stone-500">Fecha</label>
               <input
                 type="date"
                 value={dateISO}
                 onChange={(e) => setDateISO(e.target.value)}
-                className="mb-3 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none"
+                disabled={isLocked}
+                className="mb-3 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none disabled:bg-stone-100 disabled:text-stone-500"
               />
               <div className="grid grid-cols-3 gap-2">
                 <label className="block">
@@ -290,7 +293,8 @@ export default function TorneoSetupPage() {
                     value={courts}
                     onChange={(e) => setCourts(Number(e.target.value))}
                     onBlur={(e) => setCourts(Math.max(1, Number(e.target.value) || 1))}
-                    className="w-full rounded-lg border border-stone-300 px-2 py-2 text-sm focus:border-stone-900 focus:outline-none"
+                    disabled={isLocked}
+                    className="w-full rounded-lg border border-stone-300 px-2 py-2 text-sm focus:border-stone-900 focus:outline-none disabled:bg-stone-100 disabled:text-stone-500"
                   />
                 </label>
                 <label className="block">
@@ -301,7 +305,8 @@ export default function TorneoSetupPage() {
                     value={matchTimeMin}
                     onChange={(e) => setMatchTimeMin(Number(e.target.value))}
                     onBlur={(e) => setMatchTimeMin(Math.max(5, Number(e.target.value) || 15))}
-                    className="w-full rounded-lg border border-stone-300 px-2 py-2 text-sm focus:border-stone-900 focus:outline-none"
+                    disabled={isLocked}
+                    className="w-full rounded-lg border border-stone-300 px-2 py-2 text-sm focus:border-stone-900 focus:outline-none disabled:bg-stone-100 disabled:text-stone-500"
                   />
                 </label>
                 <label className="block">
@@ -312,7 +317,8 @@ export default function TorneoSetupPage() {
                     value={restTimeMin}
                     onChange={(e) => setRestTimeMin(Number(e.target.value))}
                     onBlur={(e) => setRestTimeMin(Math.max(0, Number(e.target.value) || 0))}
-                    className="w-full rounded-lg border border-stone-300 px-2 py-2 text-sm focus:border-stone-900 focus:outline-none"
+                    disabled={isLocked}
+                    className="w-full rounded-lg border border-stone-300 px-2 py-2 text-sm focus:border-stone-900 focus:outline-none disabled:bg-stone-100 disabled:text-stone-500"
                   />
                 </label>
               </div>
@@ -324,7 +330,8 @@ export default function TorneoSetupPage() {
                   value={totalTimeMin}
                   onChange={(e) => setTotalTimeMin(Number(e.target.value))}
                   onBlur={(e) => setTotalTimeMin(Math.max(0, Number(e.target.value) || 0))}
-                  className="w-full rounded-lg border border-stone-300 px-2 py-2 text-sm focus:border-stone-900 focus:outline-none"
+                  disabled={isLocked}
+                  className="w-full rounded-lg border border-stone-300 px-2 py-2 text-sm focus:border-stone-900 focus:outline-none disabled:bg-stone-100 disabled:text-stone-500"
                 />
               </label>
               <label className="mt-3 block">
@@ -332,7 +339,8 @@ export default function TorneoSetupPage() {
                 <select
                   value={fixtureMode}
                   onChange={(e) => setFixtureMode(e.target.value as FixtureMode)}
-                  className="w-full rounded-lg border border-stone-300 bg-white px-2 py-2 text-sm focus:border-stone-900 focus:outline-none"
+                  disabled={isLocked}
+                  className="w-full rounded-lg border border-stone-300 bg-white px-2 py-2 text-sm focus:border-stone-900 focus:outline-none disabled:bg-stone-100 disabled:text-stone-500"
                 >
                   <option value="rotating_balanced">Nivelado rotativo</option>
                   <option value="rotating_random">Aleatorio rotativo</option>
@@ -341,7 +349,7 @@ export default function TorneoSetupPage() {
               </label>
               <button
                 type="button"
-                disabled={saving}
+                disabled={saving || isLocked}
                 onClick={() => void saveMeta()}
                 className="mt-3 w-full rounded-lg border border-stone-300 py-2 text-sm font-medium active:bg-stone-50 disabled:opacity-50"
               >
@@ -379,42 +387,47 @@ export default function TorneoSetupPage() {
                 <span className="text-xs text-stone-500">{participantIds.length}</span>
               </h2>
               <p className="mb-3 text-xs text-stone-500">
-                Elegí jugadores (múltiplo de 4). El orden influye en la lista; el fixture ordena por nivel al generar.
+                {isLocked
+                  ? "Lista de participantes del torneo bloqueado."
+                  : "Elegí jugadores (múltiplo de 4). El orden influye en la lista; el fixture ordena por nivel al generar."}
               </p>
 
-              <div className="mb-4 flex gap-2">
-                <input
-                  placeholder="Nuevo jugador rápido"
-                  value={quickName}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setQuickName(val);
-                    setQuickLevel(defaultLevelForName(val));
-                  }}
-                  className="flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none"
-                />
-                <select
-                  value={quickLevel}
-                  onChange={(e) => setQuickLevel(Number(e.target.value))}
-                  className="rounded-lg border border-stone-300 bg-white px-2 py-2 text-sm"
-                >
-                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                    <option key={n} value={n}>
-                      Nv{n}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  disabled={tournament.locked}
-                  onClick={() => void quickAddPlayer()}
-                  className="rounded-lg bg-stone-900 px-3 py-2 text-white disabled:bg-stone-400"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
+              {!isLocked && (
+                <div className="mb-4 flex gap-2">
+                  <input
+                    placeholder="Nuevo jugador rápido"
+                    value={quickName}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setQuickName(val);
+                      setQuickLevel(defaultLevelForName(val));
+                    }}
+                    className="flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none"
+                  />
+                  <select
+                    value={quickLevel}
+                    onChange={(e) => setQuickLevel(Number(e.target.value))}
+                    className="rounded-lg border border-stone-300 bg-white px-2 py-2 text-sm"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                      <option key={n} value={n}>
+                        Nv{n}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => void quickAddPlayer()}
+                    className="rounded-lg bg-stone-900 px-3 py-2 text-white"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
 
-              <p className="mb-2 text-xs font-medium text-stone-600">En el torneo (orden)</p>
+              <p className="mb-2 text-xs font-medium text-stone-600">
+                {isLocked ? "Participantes" : "En el torneo (orden)"}
+              </p>
               <ul className="mb-4 space-y-1">
                 {participantIds.map((pid, idx) => {
                   const p = allPlayers.find((x) => x.id === pid);
@@ -423,59 +436,65 @@ export default function TorneoSetupPage() {
                       key={pid}
                       className="flex items-center gap-1 rounded-lg bg-amber-50/80 px-2 py-2 text-sm"
                     >
-                      <button
-                        type="button"
-                        disabled={tournament.locked}
-                        className="p-1 text-stone-400"
-                        onClick={() => moveParticipant(idx, -1)}
-                        aria-label="Subir"
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={tournament.locked}
-                        className="p-1 text-stone-400"
-                        onClick={() => moveParticipant(idx, 1)}
-                        aria-label="Bajar"
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </button>
+                      {!isLocked && (
+                        <>
+                          <button
+                            type="button"
+                            className="p-1 text-stone-400"
+                            onClick={() => moveParticipant(idx, -1)}
+                            aria-label="Subir"
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            className="p-1 text-stone-400"
+                            onClick={() => moveParticipant(idx, 1)}
+                            aria-label="Bajar"
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                       <span className="flex-1 truncate">
                         {p?.fullName ?? pid}{" "}
                         <span className="text-xs text-stone-400">Nv{p?.level ?? "?"}</span>
                       </span>
-                      <button
-                        type="button"
-                        disabled={tournament.locked}
-                        className="text-stone-400"
-                        onClick={() => setParticipantIds((prev) => prev.filter((x) => x !== pid))}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {!isLocked && (
+                        <button
+                          type="button"
+                          className="text-stone-400"
+                          onClick={() => setParticipantIds((prev) => prev.filter((x) => x !== pid))}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </li>
                   );
                 })}
               </ul>
 
-              <p className="mb-2 text-xs font-medium text-stone-600">Todos los jugadores</p>
-              <ul className="max-h-48 space-y-1 overflow-y-auto">
-                {allPlayers.map((p) => (
-                  <li key={p.id}>
-                    <button
-                      type="button"
-                      disabled={tournament.locked}
-                      onClick={() => togglePlayer(p.id)}
-                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm ${
-                        selectedSet.has(p.id) ? "bg-stone-900 text-white" : "bg-stone-50"
-                      } disabled:opacity-50`}
-                    >
-                      <span className="flex-1 truncate">{p.fullName}</span>
-                      <span className="text-xs opacity-80">Nv{p.level}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              {!isLocked && (
+                <>
+                  <p className="mb-2 text-xs font-medium text-stone-600">Todos los jugadores</p>
+                  <ul className="max-h-48 space-y-1 overflow-y-auto">
+                    {allPlayers.map((p) => (
+                      <li key={p.id}>
+                        <button
+                          type="button"
+                          onClick={() => togglePlayer(p.id)}
+                          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm ${
+                            selectedSet.has(p.id) ? "bg-stone-900 text-white" : "bg-stone-50"
+                          }`}
+                        >
+                          <span className="flex-1 truncate">{p.fullName}</span>
+                          <span className="text-xs opacity-80">Nv{p.level}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </section>
 
             {summary && (
@@ -518,13 +537,15 @@ export default function TorneoSetupPage() {
               </section>
             )}
 
-            <button
-              type="button"
-              onClick={() => void deleteTournament()}
-              className="w-full rounded-lg border border-red-200 py-2 text-sm text-red-700"
-            >
-              Eliminar torneo
-            </button>
+            {!isLocked && (
+              <button
+                type="button"
+                onClick={() => void deleteTournament()}
+                className="w-full rounded-lg border border-red-200 py-2 text-sm text-red-700"
+              >
+                Eliminar torneo
+              </button>
+            )}
           </>
         ) : null}
       </main>

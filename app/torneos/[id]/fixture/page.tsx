@@ -335,6 +335,7 @@ export default function FixturePage() {
   const completedMatches = matches.filter((m) => m.score1 !== "" && m.score2 !== "").length;
 
   if (!id) return null;
+  const isLocked = Boolean(tournament?.locked);
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">
@@ -388,41 +389,43 @@ export default function FixturePage() {
         )}
 
         <div className="flex flex-wrap gap-2">
-          <select
-            value={tournament?.fixtureMode ?? "rotating_balanced"}
-            disabled={Boolean(tournament?.locked) || modeSaving}
-            onChange={(e) => void updateFixtureMode(e.target.value as FixtureMode)}
-            className="rounded-lg border border-stone-300 bg-white px-2 py-2 text-xs font-medium disabled:opacity-50"
-          >
-            <option value="rotating_balanced">Nivelado rotativo</option>
-            <option value="rotating_random">Aleatorio rotativo</option>
-            <option value="fixed_balanced">Equipos fijos nivelados</option>
-          </select>
-          <button
-            type="button"
-            disabled={genLoading || Boolean(tournament?.locked)}
-            onClick={() => void generateFixture()}
-            className="flex-1 rounded-lg bg-stone-900 px-3 py-2 text-xs font-medium text-white disabled:bg-stone-400"
-          >
-            {genLoading ? "Generando…" : "Generar fixture"}
-          </button>
-          <button
-            type="button"
-            disabled={Boolean(tournament?.locked)}
-            onClick={() => addManualMatch()}
-            className="flex items-center gap-1 rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium disabled:opacity-50"
-          >
-            <Plus className="h-3 w-3" />
-            Partido manual
-          </button>
-          <button
-            type="button"
-            disabled={Boolean(tournament?.locked)}
-            onClick={() => autocompleteMatchesByTime()}
-            className="rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium disabled:opacity-50"
-          >
-            Completar por tiempo
-          </button>
+          {!isLocked && (
+            <>
+              <select
+                value={tournament?.fixtureMode ?? "rotating_balanced"}
+                disabled={modeSaving}
+                onChange={(e) => void updateFixtureMode(e.target.value as FixtureMode)}
+                className="rounded-lg border border-stone-300 bg-white px-2 py-2 text-xs font-medium disabled:opacity-50"
+              >
+                <option value="rotating_balanced">Nivelado rotativo</option>
+                <option value="rotating_random">Aleatorio rotativo</option>
+                <option value="fixed_balanced">Equipos fijos nivelados</option>
+              </select>
+              <button
+                type="button"
+                disabled={genLoading}
+                onClick={() => void generateFixture()}
+                className="flex-1 rounded-lg bg-stone-900 px-3 py-2 text-xs font-medium text-white disabled:bg-stone-400"
+              >
+                {genLoading ? "Generando…" : "Generar fixture"}
+              </button>
+              <button
+                type="button"
+                onClick={() => addManualMatch()}
+                className="flex items-center gap-1 rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium"
+              >
+                <Plus className="h-3 w-3" />
+                Partido manual
+              </button>
+              <button
+                type="button"
+                onClick={() => autocompleteMatchesByTime()}
+                className="rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium"
+              >
+                Completar por tiempo
+              </button>
+            </>
+          )}
           <button
             type="button"
             disabled={!tournament}
@@ -468,40 +471,38 @@ export default function FixturePage() {
                         </span>
                       )}
                     </span>
-                    <span className="flex gap-0.5">
-                      <button
-                        type="button"
-                        disabled={Boolean(tournament?.locked)}
-                        className="rounded p-0.5 text-stone-400"
-                        onClick={() => moveMatch(idx, -1)}
-                      >
-                        <ArrowUp className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={Boolean(tournament?.locked)}
-                        className="rounded p-0.5 text-stone-400"
-                        onClick={() => moveMatch(idx, 1)}
-                      >
-                        <ArrowDown className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={Boolean(tournament?.locked)}
-                        className="rounded p-0.5 text-stone-400"
-                        onClick={() => openEditModal(m.id)}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={Boolean(tournament?.locked)}
-                        className="rounded p-0.5 text-red-500 disabled:opacity-50"
-                        onClick={() => deleteMatch(m.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </span>
+                    {!isLocked && (
+                      <span className="flex gap-0.5">
+                        <button
+                          type="button"
+                          className="rounded p-0.5 text-stone-400"
+                          onClick={() => moveMatch(idx, -1)}
+                        >
+                          <ArrowUp className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded p-0.5 text-stone-400"
+                          onClick={() => moveMatch(idx, 1)}
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded p-0.5 text-stone-400"
+                          onClick={() => openEditModal(m.id)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded p-0.5 text-red-500"
+                          onClick={() => deleteMatch(m.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5">
