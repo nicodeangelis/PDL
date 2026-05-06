@@ -71,8 +71,8 @@ export default function TorneoSetupPage() {
 
   const selectedSet = useMemo(() => new Set(participantIds), [participantIds]);
 
-  async function saveMeta() {
-    if (!id) return;
+  async function saveMeta(): Promise<boolean> {
+    if (!id) return false;
     setSaving(true);
     setErr(null);
     try {
@@ -91,12 +91,18 @@ export default function TorneoSetupPage() {
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
         setErr(String(j.error ?? "Error al guardar"));
-        return;
+        return false;
       }
       setTournament(j);
+      return true;
     } finally {
       setSaving(false);
     }
+  }
+
+  async function goFixture() {
+    const ok = await saveMeta();
+    if (ok) router.push(`/torneos/${id}/fixture`);
   }
 
   function togglePlayer(pid: string) {
@@ -367,13 +373,15 @@ export default function TorneoSetupPage() {
 
       {tournament && (
         <div className="fixed bottom-0 left-0 right-0 border-t border-stone-200 bg-white px-4 py-3">
-          <Link
-            href={`/torneos/${id}/fixture`}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-stone-900 py-3 text-sm font-medium text-white active:bg-stone-700"
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => void goFixture()}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-stone-900 py-3 text-sm font-medium text-white active:bg-stone-700 disabled:bg-stone-400"
           >
             Ir al fixture
             <ChevronRight className="h-4 w-4" />
-          </Link>
+          </button>
         </div>
       )}
     </div>
